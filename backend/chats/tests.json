@@ -1,0 +1,50 @@
+{
+  "tests": [
+    {
+      "name": "Get user chats",
+      "method": "GET",
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Create group chat",
+      "method": "POST",
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "body": {
+        "action": "create_chat",
+        "type": "group",
+        "name": "Test Group",
+        "member_ids": [2, 3]
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "success": true,
+        "chat_id": "number"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Send message",
+      "method": "POST",
+      "headers": {
+        "X-User-Id": "1"
+      },
+      "body": {
+        "action": "send_message",
+        "chat_id": 1,
+        "text": "Hello!"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "id": "number",
+        "text": "string"
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}

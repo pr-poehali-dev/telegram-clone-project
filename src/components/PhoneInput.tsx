@@ -9,6 +9,8 @@ interface PhoneInputProps {
 
 export default function PhoneInput({ onSubmit }: PhoneInputProps) {
   const [phone, setPhone] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const formatPhone = (value: string) => {
     const numbers = value.replace(/\D/g, '');
@@ -26,11 +28,33 @@ export default function PhoneInput({ onSubmit }: PhoneInputProps) {
     setPhone(formatted);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const numbers = phone.replace(/\D/g, '');
-    if (numbers.length === 11) {
-      onSubmit(phone);
+    if (numbers.length !== 11) return;
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/b5fda925-a5fb-49c4-85de-198587a13ddb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_code', phone })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        console.log('Dev SMS Code:', data.dev_code);
+        onSubmit(phone);
+      } else {
+        setError(data.error || 'Ошибка отправки кода');
+      }
+    } catch (err) {
+      setError('Ошибка соединения с сервером');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,19 +83,35 @@ export default function PhoneInput({ onSubmit }: PhoneInputProps) {
             className="text-lg h-14 text-center tracking-wider"
             maxLength={18}
             autoFocus
+            disabled={loading}
           />
           <p className="text-xs text-muted-foreground text-center">
             Мы отправим SMS с кодом подтверждения
           </p>
         </div>
 
+        {error && (
+          <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
+
         <Button
           type="submit"
-          disabled={!isValid}
+          disabled={!isValid || loading}
           className="w-full h-12 text-base"
         >
-          Продолжить
-          <Icon name="ArrowRight" size={20} className="ml-2" />
+          {loading ? (
+            <>
+              <Icon name="Loader2" size={20} className="mr-2 animate-spin" />
+              Отправка кода...
+            </>
+          ) : (
+            <>
+              Продолжить
+              <Icon name="ArrowRight" size={20} className="ml-2" />
+            </>
+          )}
         </Button>
       </form>
 

@@ -5,13 +5,15 @@ import Icon from '@/components/ui/icon';
 
 interface CodeVerificationProps {
   phone: string;
-  onVerify: (code: string) => void;
+  onVerify: (userExists: boolean, userData?: any) => void;
   onBack: () => void;
 }
 
 export default function CodeVerification({ phone, onVerify, onBack }: CodeVerificationProps) {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(60);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export default function CodeVerification({ phone, onVerify, onBack }: CodeVerifi
     }
 
     if (newCode.every((digit) => digit !== '')) {
-      onVerify(newCode.join(''));
+      verifyCode(newCode.join(''));
     }
   };
 
@@ -62,16 +64,55 @@ export default function CodeVerification({ phone, onVerify, onBack }: CodeVerifi
     
     if (pastedData.length >= 6) {
       inputRefs.current[5]?.focus();
-      onVerify(newCode.join(''));
+      verifyCode(newCode.join(''));
     } else {
       inputRefs.current[Math.min(pastedData.length, 5)]?.focus();
     }
   };
 
-  const handleResend = () => {
-    setTimer(60);
-    setCode(['', '', '', '', '', '']);
-    inputRefs.current[0]?.focus();
+  const verifyCode = async (codeStr: string) => {
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://functions.poehali.dev/b5fda925-a5fb-49c4-85de-198587a13ddb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'verify_code', phone, code: codeStr })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        onVerify(data.user_exists, data.user);
+      } else {
+        setError(data.error || 'Неверный код');
+        setCode(['', '', '', '', '', '']);
+        inputRefs.current[0]?.focus();
+      }
+    } catch (err) {
+      setError('Ошибка соединения');
+      setCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError('');
+    try {
+      await fetch('https://functions.poehali.dev/b5fda925-a5fb-49c4-85de-198587a13ddb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'send_code', phone })
+      });
+      setTimer(60);
+      setCode(['', '', '', '', '', '']);
+      inputRefs.current[0]?.focus();
+    } catch (err) {
+      setError('Ошибка отправки кода');
+    }
   };
 
   return (
@@ -109,9 +150,22 @@ export default function CodeVerification({ phone, onVerify, onBack }: CodeVerifi
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
               className="w-12 h-14 text-center text-xl font-semibold"
+              disabled={loading}
             />
           ))}
         </div>
+
+        {error && (
+          <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        {loading && (
+          <div className="flex justify-center">
+            <Icon name="Loader2" size={24} className="animate-spin text-primary" />
+          </div>
+        )}
 
         {timer > 0 ? (
           <p className="text-center text-sm text-muted-foreground">
@@ -122,6 +176,7 @@ export default function CodeVerification({ phone, onVerify, onBack }: CodeVerifi
             variant="link"
             onClick={handleResend}
             className="w-full"
+            disabled={loading}
           >
             Отправить код повторно
           </Button>

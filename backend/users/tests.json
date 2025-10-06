@@ -1,0 +1,29 @@
+{
+  "tests": [
+    {
+      "name": "Create user",
+      "method": "POST",
+      "body": {
+        "phone": "+7 (999) 888-77-66",
+        "nickname": "Test User",
+        "username": "testuser"
+      },
+      "expectedStatus": 201,
+      "expectedBody": {
+        "id": "number",
+        "nickname": "string",
+        "username": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Search users",
+      "method": "GET",
+      "query": {
+        "search": "test"
+      },
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
