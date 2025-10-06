@@ -4,6 +4,8 @@ import Icon from '@/components/ui/icon';
 import ChatList from '@/components/ChatList';
 import ChatWindow from '@/components/ChatWindow';
 import Sidebar from '@/components/Sidebar';
+import PhoneInput from '@/components/PhoneInput';
+import CodeVerification from '@/components/CodeVerification';
 
 interface Chat {
   id: number;
@@ -14,7 +16,11 @@ interface Chat {
   online?: boolean;
 }
 
+type AuthStep = 'phone' | 'code' | 'authorized';
+
 export default function Index() {
+  const [authStep, setAuthStep] = useState<AuthStep>('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobileChatListOpen, setIsMobileChatListOpen] = useState(true);
@@ -28,6 +34,40 @@ export default function Index() {
     setIsMobileChatListOpen(true);
     setSelectedChat(null);
   };
+
+  const handlePhoneSubmit = (phone: string) => {
+    setPhoneNumber(phone);
+    setAuthStep('code');
+  };
+
+  const handleCodeVerify = (code: string) => {
+    console.log('Verifying code:', code);
+    setAuthStep('authorized');
+  };
+
+  const handleBackToPhone = () => {
+    setAuthStep('phone');
+  };
+
+  if (authStep === 'phone') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-secondary/30">
+        <PhoneInput onSubmit={handlePhoneSubmit} />
+      </div>
+    );
+  }
+
+  if (authStep === 'code') {
+    return (
+      <div className="h-screen flex items-center justify-center bg-secondary/30">
+        <CodeVerification
+          phone={phoneNumber}
+          onVerify={handleCodeVerify}
+          onBack={handleBackToPhone}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex overflow-hidden">
